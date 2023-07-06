@@ -17,6 +17,10 @@ public class Complex {
     public Complex add(Complex z) {
         return new Complex(x + z.x, y + z.y);
     }
+    
+    public Complex subtract(Complex z) {
+        return new Complex(x - z.x, y - z.y);
+    }
 
     public Complex multiply(Complex z) {
         return new Complex(x * z.x - y * z.y, x * z.y + y * z.x);

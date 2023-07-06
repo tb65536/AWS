@@ -37,6 +37,32 @@ public class Matrix {
         return new Matrix(n, m, b);
     }
 
+    public Matrix add(Matrix M) {
+        if (m != M.m || n != M.n) {
+            throw new IllegalArgumentException();
+        }
+        Complex[][] b = new Complex[m][n];
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                b[i][j] = a[i][j].add(M.a[i][j]);
+            }
+        }
+        return new Matrix(m, n, b);
+    }
+    
+    public Matrix subtract(Matrix M) {
+        if (m != M.m || n != M.n) {
+            throw new IllegalArgumentException();
+        }
+        Complex[][] b = new Complex[m][n];
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                b[i][j] = a[i][j].subtract(M.a[i][j]);
+            }
+        }
+        return new Matrix(m, n, b);
+    }
+
     public Matrix multiply(Matrix M) {
         if (n != M.m) {
             throw new IllegalArgumentException();
