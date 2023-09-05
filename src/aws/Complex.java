@@ -2,6 +2,8 @@ package aws;
 
 public class Complex {
 
+    public static final Complex ZERO = new Complex(0, 0);
+
     private final long x;
     private final long y;
 
@@ -17,13 +19,25 @@ public class Complex {
     public Complex add(Complex z) {
         return new Complex(x + z.x, y + z.y);
     }
-    
+
     public Complex subtract(Complex z) {
         return new Complex(x - z.x, y - z.y);
     }
 
     public Complex multiply(Complex z) {
         return new Complex(x * z.x - y * z.y, x * z.y + y * z.x);
+    }
+
+    public Complex multiply(long c) {
+        return new Complex(x * c, y * c);
+    }
+
+    public Complex divide(long c) {
+        return new Complex(x / c, y / c);
+    }
+
+    public Complex mod(long c) {
+        return new Complex(((x % c) + c) % c, ((y % c) + c) % c);
     }
 
     public long val() {
