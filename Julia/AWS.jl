@@ -141,6 +141,14 @@ Li3 = Complex{Int}[
 # Build up G row by row, checking to make sure that the congruence conditions are satisfied
 # Keep track of T so far, and Li G so far
 
+function Base.:÷(z::Complex{Int}, m::Int)
+    return Complex(z.re ÷ m, z.im ÷ m)
+end
+
+function Base.:÷(M::Matrix{Complex{Int}}, m::Int)
+    return M .÷ m
+end
+
 function Base.:%(z::Complex{Int}, m::Int)
     return Complex(mod(z.re, m), mod(z.im, m))
 end
@@ -161,6 +169,7 @@ function run(n::Int, tracebound::Int, S::Matrix{Complex{Int}}, D::Matrix{Int}, L
     m0 = Dict{Pair{Matrix{Complex{Int}}, Matrix{Complex{Int}}}, BigInt}() # (G' D G = d T, Li G (mod d)) ↦ a
     m0[Pair(zeros(Complex{Int}, n, n), zeros(Complex{Int}, 8, n))] = 1
     for i in 8:-1:1
+        println("status: ", i, " (", length(m0), ")")
         m1 = Dict{Pair{Matrix{Complex{Int}}, Matrix{Complex{Int}}}, BigInt}()
         for ((dT, LiG), a) in m0
             bound = d * tracebound
@@ -207,24 +216,33 @@ function run(n::Int, tracebound::Int, S::Matrix{Complex{Int}}, D::Matrix{Int}, L
     end
     m = Dict{Matrix, BigInt}() # T ↦ a
     for ((dT, LiG), a) in m0
-
+        if LiG != zeros(Complex{Int}, 8, 4)
+            println("error")
+        end
+        if dT % d != zeros(Complex{Int}, 4, 4)
+            println("error")
+        end
+        m[dT ÷ d] = a
     end
     return m
 end
 
 function run(n::Int, tracebound::Int)
-    m1 = run(4, 2, S1, D1, L1, Li1, d1)
-    m2 = run(4, 2, S2, D2, L2, Li2, d2)
-    m3 = run(4, 2, S3, D3, L3, Li3, d3)
+    m1 = run(4, tracebound, S1, D1, L1, Li1, d1)
+    m2 = run(4, tracebound, S2, D2, L2, Li2, d2)
+    m3 = run(4, tracebound, S3, D3, L3, Li3, d3)
     m4 = Dict{Matrix{Complex{Int}}, BigInt}()
     for (T, a) in m1
-        m4[T] = get(m4, T, a)
+        println(trace(T))
+        m4[T] = get(m4, T, 0) + 8 * a
     end
     for (T, a) in m2
-        m4[T] = get(m4, T, a)
+        println(trace(T))
+        m4[T] = get(m4, T, 0) - 15 * a
     end
     for (T, a) in m3
-        m4[T] = get(m4, T, a)
+        println(trace(T))
+        m4[T] = get(m4, T, 0) + 7 * a
     end
     m5 = Dict{Matrix{Complex{Int}}, BigInt}()
     for (T, a) in m4
@@ -235,7 +253,9 @@ function run(n::Int, tracebound::Int)
     return m5
 end
 
-m = run(4, 2)
+m = run(4, 3)
+# Why is trace 3 slower than trace 2?
+# Use alternate Li1 matrix
 
 for (T, a) in m
     println(T, ": ", a)
