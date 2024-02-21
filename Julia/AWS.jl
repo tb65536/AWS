@@ -39,38 +39,11 @@ d2 = 6
 
 d3 = 2
 
-D1 = Int[
-    1 0 0 0 0 0 0 0
-    0 1 0 0 0 0 0 0
-    0 0 1 0 0 0 0 0
-    0 0 0 1 0 0 0 0
-    0 0 0 0 1 0 0 0
-    0 0 0 0 0 1 0 0
-    0 0 0 0 0 0 1 0
-    0 0 0 0 0 0 0 1
-]
+D1 = diagm([1, 1, 1, 1, 1, 1, 1, 1])
 
-D2 = Int[
-    3 0 0 0 0 0 0 0
-    0 1 0 0 0 0 0 0
-    0 0 1 0 0 0 0 0
-    0 0 0 3 0 0 0 0
-    0 0 0 0 3 0 0 0
-    0 0 0 0 0 3 0 0
-    0 0 0 0 0 0 3 0
-    0 0 0 0 0 0 0 3
-]
+D2 = diagm([3, 1, 1, 3, 3, 3, 3, 3])
 
-D3 = Int[
-    1 0 0 0 0 0 0 0
-    0 1 0 0 0 0 0 0
-    0 0 1 0 0 0 0 0
-    0 0 0 1 0 0 0 0
-    0 0 0 0 1 0 0 0
-    0 0 0 0 0 1 0 0
-    0 0 0 0 0 0 1 0
-    0 0 0 0 0 0 0 1
-]
+D3 = diagm([1, 1, 1, 1, 1, 1, 1, 1])
 
 L1 = Complex{Int}[
     2  0  0  0  1  1  0  1
@@ -154,8 +127,9 @@ function Base.:%(M::Vector{Complex{Int}}, m::Int)
     return M .% m
 end
 
-# returns all vectors with norm k (k should be a nonnegative even integer)
+# Returns all vectors G with G' * S * G = k (k should be a nonnegative even integer)
 function search(k::Int, S::Matrix{Complex{Int}}, D::Matrix{Int}, L::Matrix{Complex{Int}}, Li::Matrix{Complex{Int}}, d::Int)
+    # Verify the Cholesky decomposition S = L' * D * L / d
     @assert ishermitian(S)
     @assert isposdef(S)
     @assert isdiag(D)
@@ -164,8 +138,9 @@ function search(k::Int, S::Matrix{Complex{Int}}, D::Matrix{Int}, L::Matrix{Compl
     @assert L' * D * L == d * S
     @assert Li * L == d * I
     @assert L * Li == d * I
+    # Find all vectors z with abs2(z) ≤ d * k
     normbound = d * k
-    zlist = Complex{Int}[]
+    zlist = Vector{Complex{Int}}()
     for x in range(-normbound, normbound)
         for y in range(-normbound, normbound)
             z = x + y * im
@@ -174,111 +149,68 @@ function search(k::Int, S::Matrix{Complex{Int}}, D::Matrix{Int}, L::Matrix{Compl
             end
         end
     end
+    # Find all vectors LG with LG' * D * LG = d * k
+    LGlist = Vector{Vector{Complex{Int}}}()
+    push!(LGlist, Vector{Complex{Int}}())
+    for i in 1 : 8
+        nLGlist = Vector{Vector{Complex{Int}}}()
+        for LG in LGlist
+            for z in zlist
+                nLG = copy(LG)
+                pushfirst!(nLG, z)
+                if sum(Li[9 - i, 8 - i + j] * nLG[j] for j in 1 : i) % d != 0
+                    continue
+                end
+                norm = sum(D[8 - i + j, 8 - i + j] * abs2(nLG[j]) for j in 1 : i)
+                if norm > normbound
+                    continue
+                end
+                if i == 8 && norm != normbound
+                    continue
+                end
+                push!(nLGlist, nLG)
+            end
+        end
+        LGlist = nLGlist
+    end
+    # Find all vectors G with G' * S * G = k
     Glist = Vector{Vector{Complex{Int}}}()
-    for z8 in zlist
-        if D[8,8] * abs2(z8) > normbound
-            continue
-        end
-        if (Li[8,8] * z8) % d != 0
-            continue
-        end
-        for z7 in zlist
-            if D[7,7] * abs2(z7) + D[8,8] * abs2(z8) > normbound
-                continue
-            end
-            if (Li[7,7] * z7 + Li[7,8] * z8) % d != 0
-                continue
-            end
-            for z6 in zlist
-                if D[6,6] * abs2(z6) + D[7,7] * abs2(z7) + D[8,8] * abs2(z8) > normbound
-                    continue
-                end
-                if (Li[6,6] * z6 + Li[6,7] * z7 + Li[6,8] * z8) % d != 0
-                    continue
-                end
-                for z5 in zlist
-                    if D[5,5] * abs2(z5) + D[6,6] * abs2(z6) + D[7,7] * abs2(z7) + D[8,8] * abs2(z8) > normbound
-                        continue
-                    end
-                    if (Li[5,5] * z5 + Li[5,6] * z6 + Li[5,7] * z7 + Li[5,8] * z8) % d != 0
-                        continue
-                    end
-                    for z4 in zlist
-                        if D[4,4] * abs2(z4) + D[5,5] * abs2(z5) + D[6,6] * abs2(z6) + D[7,7] * abs2(z7) + D[8,8] * abs2(z8) > normbound
-                            continue
-                        end
-                        if (Li[4,4] * z4 + Li[4,5] * z5 + Li[4,6] * z6 + Li[4,7] * z7 + Li[4,8] * z8) % d != 0
-                            continue
-                        end
-                        for z3 in zlist
-                            if D[3,3] * abs2(z3) + D[4,4] * abs2(z4) + D[5,5] * abs2(z5) + D[6,6] * abs2(z6) + D[7,7] * abs2(z7) + D[8,8] * abs2(z8) > normbound
-                                continue
-                            end
-                            if (Li[3,3] * z3 + Li[3,4] * z4 + Li[3,5] * z5 + Li[3,6] * z6 + Li[3,7] * z7 + Li[3,8] * z8) % d != 0
-                                continue
-                            end
-                            for z2 in zlist
-                                if D[2,2] * abs2(z2) + D[3,3] * abs2(z3) + D[4,4] * abs2(z4) + D[5,5] * abs2(z5) + D[6,6] * abs2(z6) + D[7,7] * abs2(z7) + D[8,8] * abs2(z8) > normbound
-                                    continue
-                                end
-                                if (Li[2,2] * z2 + Li[2,3] * z3 + Li[2,4] * z4 + Li[2,5] * z5 + Li[2,6] * z6 + Li[2,7] * z7 + Li[2,8] * z8) % d != 0
-                                    continue
-                                end
-                                for z1 in zlist
-                                    if D[1,1] * abs2(z1) + D[2,2] * abs2(z2) + D[3,3] * abs2(z3) + D[4,4] * abs2(z4) + D[5,5] * abs2(z5) + D[6,6] * abs2(z6) + D[7,7] * abs2(z7) + D[8,8] * abs2(z8) != normbound
-                                        continue
-                                    end
-                                    if (Li[1,1] * z1 + Li[1,2] * z2 + Li[1,3] * z3 + Li[1,4] * z4 + Li[1,5] * z5 + Li[1,6] * z6 + Li[1,7] * z7 + Li[1,8] * z8) % d != 0
-                                        continue
-                                    end
-                                    LG = [z1, z2, z3, z4, z5, z6, z7, z8]
-                                    dG = Li * LG
-                                    G = dG ÷ d
-                                    @assert d * G == dG
-                                    @assert G' * S * G == k
-                                    push!(Glist, G)
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
+    for LG in LGlist
+        dG = Li * LG
+        G = dG ÷ d
+        @assert d * G == dG
+        @assert G' * S * G == k
+        push!(Glist, G)
     end
     return Glist
 end
 
+# Returns a Fourier coefficient of the Hermitian theta series arising from S = L' * D * L / d
 function compute(S::Matrix{Complex{Int}}, D::Matrix{Int}, L::Matrix{Complex{Int}}, Li::Matrix{Complex{Int}}, d::Int)
     Glist = search(2, S, D, L, Li, d)
-    a4 = 0
-    i = 0
+    perp = Dict{Vector{Complex{Int}},Set{Vector{Complex{Int}}}}()
+    for G1 in Glist
+        perp[G1] = Set{Vector{Complex{Int}}}()
+        for G2 in Glist
+            if G1' * S * G2 == 0
+                push!(perp[G1], G2)
+            end
+        end
+    end
+    sum = 0
     for G1 in Glist
         amt = 0
-        for G2 in Glist
-            if G1' * S * G2 != 0
-                continue
-            end
-            for G3 in Glist
-                if G1' * S * G3 != 0
-                    continue
-                end
-                if G2' * S * G3 != 0
-                    continue
-                end
-                amt += 1
-                
-            end
+        for G2 in perp[G1]
+            amt += length(perp[G1] ∩ perp[G2])
         end
         val = 0
         for G4 in Glist
-            x = G1' * S * G4
+            x = G4' * S * G1
             val += x * x * x * x
         end
-        a4 += amt * val
-        i += 1
-        println("status ", d, ": ", i, " ", amt, " ", val)
+        sum += amt * val
     end
-    return a4
+    return sum
 end
 
 function compute()
